@@ -1,0 +1,161 @@
+# GoReleaser configuration for local builds
+# This file is used for local development and testing
+# Run with: goreleaser build --config .goreleaser.local.yml --single-target --snapshot
+
+version: 2
+
+project_name: maestro
+
+env:
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  # CLI client
+  - id: maestro
+    binary: maestro
+    main: ./cmd/maestro
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version=dev
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.ShortCommit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    dir: .
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+  # Daemon service
+  - id: maestrod
+    binary: maestrod
+    main: ./cmd/maestrod
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version=dev
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.ShortCommit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    dir: .
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+  # Terminal UI
+  - id: maestro-tui
+    binary: maestro-tui
+    main: ./cmd/maestro-tui
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version=dev
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.ShortCommit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    dir: .
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+  # MCP server
+  - id: maestro-mcp
+    binary: maestro-mcp
+    main: ./cmd/maestro-mcp
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version=dev
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.ShortCommit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    dir: .
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+  # AppleScript executor
+  - id: maestro-exec
+    binary: maestro-exec
+    main: ./cmd/maestro-exec
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version=dev
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.ShortCommit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    dir: .
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+archives:
+  - id: maestro-local-archive
+    format: tar.gz
+    name_template: >-
+      maestro_dev_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      - else }}{{ .Arch }}{{ end }}
+    builds:
+      - maestro
+      - maestrod
+      - maestro-tui
+      - maestro-mcp
+      - maestro-exec
+    files:
+      - README.md
+      - docs/*
+      - configs/examples/*
+      - certs/generate.sh
+
+checksum:
+  name_template: 'checksums.txt'
+  disable: true  # Skip checksum for local builds
+
+snapshot:
+  name_template: "dev-{{ .ShortCommit }}"
+
+changelog:
+  disable: true  # Skip changelog for local builds
+
+release:
+  disable: true  # Don't create releases for local builds
+
+# Disable distribution features for local builds
+brews:
+  - skip: true
+
+nfpms:
+  - skip: true

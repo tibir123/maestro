@@ -1,0 +1,203 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  # Lint job
+  lint:
+    name: Lint
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+
+    - name: Run golangci-lint
+      run: |
+        $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Check go mod tidy
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod go.sum
+
+  # Test job
+  test:
+    name: Test
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: |
+        go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Check test coverage
+      run: |
+        coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Coverage: ${coverage}%"
+        if (( $(echo "$coverage < 80.0" | bc -l) )); then
+          echo "Coverage ${coverage}% is below the required 80%"
+          exit 1
+        fi
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+  # Build job
+  build:
+    name: Build
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Build all binaries
+      run: make build
+
+    - name: Test CLI functionality
+      run: |
+        ./bin/maestro --help
+        ./bin/maestro-exec --help || true  # Allow failure since it expects stdin
+
+  # Security job
+  security:
+    name: Security
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Run govulncheck
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+  # Integration test job (if Music.app is available)
+  integration:
+    name: Integration Tests
+    runs-on: macos-latest
+    continue-on-error: true  # Allow failure since Music.app might not be available in CI
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Build binaries
+      run: make build
+
+    - name: Run integration tests
+      run: |
+        if command -v osascript &> /dev/null; then
+          echo "Running integration tests with AppleScript support"
+          make test-integration || echo "Integration tests failed (expected in CI)"
+        else
+          echo "Skipping integration tests - no AppleScript support"
+        fi
+
+  # Final check job - this must pass for PR merge
+  ci-complete:
+    name: CI Complete
+    runs-on: macos-latest
+    needs: [lint, test, build, security]
+    if: always()
+    steps:
+    - name: Check all jobs status
+      run: |
+        if [[ "${{ needs.lint.result }}" != "success" ]]; then
+          echo "Lint job failed"
+          exit 1
+        fi
+        if [[ "${{ needs.test.result }}" != "success" ]]; then
+          echo "Test job failed"
+          exit 1
+        fi
+        if [[ "${{ needs.build.result }}" != "success" ]]; then
+          echo "Build job failed"
+          exit 1
+        fi
+        if [[ "${{ needs.security.result }}" != "success" ]]; then
+          echo "Security job failed"
+          exit 1
+        fi
+        echo "All required checks passed!"

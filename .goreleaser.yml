@@ -1,0 +1,246 @@
+# GoReleaser configuration for GitHub Actions
+# This file is used for automated releases via GitHub Actions
+
+version: 2
+
+project_name: maestro
+
+env:
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  # CLI client
+  - id: maestro
+    binary: maestro
+    main: ./cmd/maestro
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version={{.Version}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.Commit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+  # Daemon service
+  - id: maestrod
+    binary: maestrod
+    main: ./cmd/maestrod
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version={{.Version}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.Commit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+  # Terminal UI
+  - id: maestro-tui
+    binary: maestro-tui
+    main: ./cmd/maestro-tui
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version={{.Version}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.Commit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+  # MCP server
+  - id: maestro-mcp
+    binary: maestro-mcp
+    main: ./cmd/maestro-mcp
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version={{.Version}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.Commit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+  # AppleScript executor
+  - id: maestro-exec
+    binary: maestro-exec
+    main: ./cmd/maestro-exec
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/madstone-tech/maestro/pkg/version.Version={{.Version}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Commit={{.Commit}}
+      - -X github.com/madstone-tech/maestro/pkg/version.Date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: maestro-archive
+    format: tar.gz
+    name_template: >-
+      maestro_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    builds:
+      - maestro
+      - maestrod
+      - maestro-tui
+      - maestro-mcp
+      - maestro-exec
+    files:
+      - README.md
+      - LICENSE*
+      - docs/*
+      - configs/examples/*
+      - certs/generate.sh
+      - scripts/maestrod.plist
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^build:'
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: madstone-tech
+    name: maestro
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Maestro {{ .Tag }}
+    
+    ### Installation
+    
+    #### Homebrew (recommended)
+    ```bash
+    brew install madstone-tech/tap/maestro
+    ```
+    
+    #### Manual Installation
+    ```bash
+    # Download the archive for your architecture
+    tar -xzf maestro_{{ .Version }}_darwin_arm64.tar.gz
+    sudo mv maestro* /usr/local/bin/
+    chmod +x /usr/local/bin/maestro*
+    
+    # Create mctl symlink
+    sudo ln -sf /usr/local/bin/maestro /usr/local/bin/mctl
+    
+    # Generate certificates
+    ./certs/generate.sh
+    ```
+    
+    ### What's New
+  footer: |
+    **Full Changelog**: https://github.com/madstone-tech/maestro/compare/{{ .PreviousTag }}...{{ .Tag }}
+    
+    ### Requirements
+    - macOS (latest version)
+    - Music.app
+    
+    ### Support
+    If you encounter any issues, please report them at https://github.com/madstone-tech/maestro/issues
+
+brews:
+  - name: maestro
+    repository:
+      owner: madstone-tech
+      name: homebrew-tap
+    homepage: https://github.com/madstone-tech/maestro
+    description: "Sophisticated music controller for macOS"
+    license: "TBD"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    install: |
+      bin.install "maestro"
+      bin.install "maestrod"
+      bin.install "maestro-tui"
+      bin.install "maestro-mcp"
+      bin.install "maestro-exec"
+      
+      # Create mctl symlink
+      bin.install_symlink bin/"maestro" => "mctl"
+      
+      # Install configs and scripts
+      (etc/"maestro").install Dir["configs/examples/*"]
+      (libexec/"maestro").install "certs/generate.sh"
+      (libexec/"maestro").install "scripts/maestrod.plist"
+    test: |
+      system "#{bin}/maestro", "--version"
+      system "#{bin}/maestrod", "--version"
+
+nfpms:
+  - id: maestro-pkg
+    package_name: maestro
+    vendor: madstone-tech
+    homepage: https://github.com/madstone-tech/maestro
+    maintainer: madstone-tech <maintainer@example.com>
+    description: Sophisticated music controller for macOS
+    license: TBD
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
+    contents:
+      - src: ./configs/examples/
+        dst: /etc/maestro/examples/
+      - src: ./certs/generate.sh
+        dst: /usr/local/libexec/maestro/
+        file_info:
+          mode: 0755
+      - src: ./scripts/maestrod.plist
+        dst: /usr/local/libexec/maestro/
