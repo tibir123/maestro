@@ -38,7 +38,7 @@ func (f *OutputFormatter) Success(message string) {
 			"message": message,
 		})
 	} else {
-		fmt.Fprintf(f.writer, "%s\n", message)
+		_, _ = fmt.Fprintf(f.writer, "%s\n", message)
 	}
 }
 
@@ -50,7 +50,7 @@ func (f *OutputFormatter) Error(err error) {
 			"error":   err.Error(),
 		})
 	} else {
-		fmt.Fprintf(f.writer, "Error: %s\n", err.Error())
+		_, _ = fmt.Fprintf(f.writer, "Error: %s\n", err.Error())
 	}
 }
 
@@ -69,13 +69,13 @@ func (f *OutputFormatter) PrintTrack(track *music.Track) {
 		f.printJSON(track)
 	} else {
 		if track != nil {
-			fmt.Fprintf(f.writer, "%s - %s\n", track.Artist, track.Title)
+			_, _ = fmt.Fprintf(f.writer, "%s - %s\n", track.Artist, track.Title)
 			if track.Album != "" {
-				fmt.Fprintf(f.writer, "Album: %s\n", track.Album)
+				_, _ = fmt.Fprintf(f.writer, "Album: %s\n", track.Album)
 			}
-			fmt.Fprintf(f.writer, "Duration: %s\n", track.Duration.String())
+			_, _ = fmt.Fprintf(f.writer, "Duration: %s\n", track.Duration.String())
 		} else {
-			fmt.Fprintf(f.writer, "No current track\n")
+			_, _ = fmt.Fprintf(f.writer, "No current track\n")
 		}
 	}
 }
@@ -165,6 +165,6 @@ func (f *OutputFormatter) Info(message string) {
 			"info": message,
 		})
 	} else {
-		fmt.Fprintf(f.writer, "%s\n", message)
+		_, _ = fmt.Fprintf(f.writer, "%s\n", message)
 	}
 }

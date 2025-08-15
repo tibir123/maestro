@@ -44,7 +44,6 @@ type Fields []Field
 type maestroLogger struct {
 	entry     *logrus.Entry
 	config    *Config
-	mu        sync.RWMutex
 	component string
 }
 

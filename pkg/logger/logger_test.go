@@ -135,19 +135,19 @@ func TestLoadFromEnv(t *testing.T) {
 	defer func() {
 		for key, value := range originalVars {
 			if value == "" {
-				os.Unsetenv(key)
+				_ = os.Unsetenv(key)
 			} else {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 		}
 	}()
 
 	// Set test environment variables
-	os.Setenv("MAESTRO_LOG_LEVEL", "debug")
-	os.Setenv("MAESTRO_LOG_FORMAT", "text")
-	os.Setenv("MAESTRO_LOG_OUTPUT", "stderr")
-	os.Setenv("MAESTRO_LOG_COMPONENT", "test")
-	os.Setenv("MAESTRO_LOG_CALLER", "true")
+	_ = os.Setenv("MAESTRO_LOG_LEVEL", "debug")
+	_ = os.Setenv("MAESTRO_LOG_FORMAT", "text")
+	_ = os.Setenv("MAESTRO_LOG_OUTPUT", "stderr")
+	_ = os.Setenv("MAESTRO_LOG_COMPONENT", "test")
+	_ = os.Setenv("MAESTRO_LOG_CALLER", "true")
 
 	config := LoadFromEnv()
 

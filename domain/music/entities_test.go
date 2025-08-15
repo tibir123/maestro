@@ -296,8 +296,8 @@ func TestPlaylistRemoveTrack(t *testing.T) {
 	trackID3 := NewTrackID("track-3")
 
 	// Add some tracks
-	playlist.AddTrack(trackID1)
-	playlist.AddTrack(trackID2)
+	_ = playlist.AddTrack(trackID1)
+	_ = playlist.AddTrack(trackID2)
 
 	// Test removing existing track
 	err := playlist.RemoveTrack(trackID1)

@@ -163,7 +163,7 @@ func (e *Executor) executeOnce(ctx context.Context, script string, timeout time.
 
 	// Start the command
 	if err := cmd.Start(); err != nil {
-		stdin.Close()
+		_ = stdin.Close()
 		return &ExecuteResult{
 			Error:    music.NewDomainErrorWithCause(music.ErrOperationFailed, "failed to start maestro-exec", err),
 			Duration: time.Since(startTime),
@@ -172,11 +172,11 @@ func (e *Executor) executeOnce(ctx context.Context, script string, timeout time.
 
 	// Write script to stdin and close
 	_, writeErr := stdin.Write([]byte(script))
-	stdin.Close()
+	_ = stdin.Close()
 
 	if writeErr != nil {
-		cmd.Process.Kill()
-		cmd.Wait()
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
 		return &ExecuteResult{
 			Error:    music.NewDomainErrorWithCause(music.ErrOperationFailed, "failed to write script to stdin", writeErr),
 			Duration: time.Since(startTime),
